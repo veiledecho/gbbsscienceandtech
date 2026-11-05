@@ -1,0 +1,36 @@
+name: Neon database migration
+
+on:
+  workflow_dispatch:
+    inputs:
+      seed_sample_data:
+        description: Seed the starter hardware, proposals, and bulletins after migrating
+        type: boolean
+        required: true
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: neon-schema-migrations
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    env:
+      DIRECT_URL: ${{ secrets.NEON_DIRECT_URL }}
+      DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Apply committed migrations
+        run: npm run db:deploy
+      - name: Seed starter records
+        if: ${{ inputs.seed_sample_data }}
+        run: npm run db:seed
